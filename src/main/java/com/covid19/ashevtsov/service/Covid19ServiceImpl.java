@@ -3,7 +3,6 @@ package com.covid19.ashevtsov.service;
 import com.covid19.ashevtsov.model.Covid19Statistic;
 import com.covid19.ashevtsov.model.Covid19StatisticRequest;
 import com.covid19.ashevtsov.model.DayStatistic;
-import org.decimal4j.util.DoubleRounder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
@@ -69,7 +68,7 @@ public class Covid19ServiceImpl implements Covid19Service {
 
         while (date.isBefore(toDate)) {
             date = date.plusDays(1);
-            int nextSickCount = (int) (sickCount * getCoefficient(averageSickIncrease));
+            int nextSickCount = plusPercent(sickCount, averageSickIncrease);
             int sickIncrease = nextSickCount - sickCount;
             int recovery = getNumberByPercent(nextSickCount, averageRecovery);
             int died = getNumberByPercent(nextSickCount, averageMortality);
