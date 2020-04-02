@@ -1,0 +1,7 @@
+server:
+  servlet:
+    context-path: /covid19
+
+percentRounding:
+  enabled: true
+  precision: 2
