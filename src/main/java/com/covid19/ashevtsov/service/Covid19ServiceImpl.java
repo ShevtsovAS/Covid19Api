@@ -36,13 +36,13 @@ public class Covid19ServiceImpl implements Covid19Service {
     private boolean percentRoundingEnabled;
 
     @Override
-    public Covid19Statistic getStatistic(LocalDate toDate, Covid19StatisticRequest request) {
+    public Covid19Statistic getStatistic(Covid19StatisticRequest request) {
 
         averageRecovery = getAverageRecovery(request);
         averageMortality = getAverageMortality(request);
         List<DayStatistic> currentStatistic = getCurrentStatistic(request);
         averageSickIncrease = getAverageSickIncrease(currentStatistic);
-        List<DayStatistic> prospectiveStatistics = getProspectiveStatistics(toDate, request);
+        List<DayStatistic> prospectiveStatistics = getProspectiveStatistics(request);
 
         Covid19Statistic statistic = Covid19Statistic.builder()
                 .averageSickIncrease(averageSickIncrease)
@@ -60,8 +60,8 @@ public class Covid19ServiceImpl implements Covid19Service {
     }
 
     @Override
-    public byte[] getCSVStatistic(LocalDate toDate, Covid19StatisticRequest request) {
-        Covid19Statistic statistic = getStatistic(toDate, request);
+    public byte[] getCSVStatistic(Covid19StatisticRequest request) {
+        Covid19Statistic statistic = getStatistic(request);
         return convertToCSV(statistic);
     }
 
@@ -92,12 +92,12 @@ public class Covid19ServiceImpl implements Covid19Service {
         statistic.getProspectiveStatistics().forEach(dayStatistic -> dayStatistic.setSickIncreasePercent(round(dayStatistic.getSickIncreasePercent(), precision)));
     }
 
-    private List<DayStatistic> getProspectiveStatistics(LocalDate toDate, Covid19StatisticRequest request) {
+    private List<DayStatistic> getProspectiveStatistics(Covid19StatisticRequest request) {
         List<DayStatistic> result = new ArrayList<>();
         int sickCount = request.getLastDaysStatistic().get(request.getLastDaysStatistic().size() - 1);
         LocalDate date = LocalDate.now();
 
-        while (date.isBefore(toDate)) {
+        while (date.isBefore(request.getDate())) {
             date = date.plusDays(1);
             int nextSickCount = plusPercent(sickCount, averageSickIncrease);
             int sickIncrease = nextSickCount - sickCount;

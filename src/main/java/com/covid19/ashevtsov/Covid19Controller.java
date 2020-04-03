@@ -5,19 +5,20 @@ import com.covid19.ashevtsov.model.Covid19StatisticRequest;
 import com.covid19.ashevtsov.service.Covid19Service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 @Slf4j
+@CrossOrigin
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
@@ -25,21 +26,36 @@ public class Covid19Controller {
 
     private final Covid19Service covid19Service;
 
-    @GetMapping("/statistic/{value}")
-    public ResponseEntity<Covid19Statistic> getStatistic(@PathVariable String value,
-                                                         @RequestBody Covid19StatisticRequest request) {
-        LocalDate toDate = getDate(value);
-        return ResponseEntity.ok(covid19Service.getStatistic(toDate, request));
+    @GetMapping("/statistic")
+    public ResponseEntity<Covid19Statistic> getStatistic(@RequestParam(required = false) @DateTimeFormat(pattern = "dd.MM.yyyy") LocalDate date,
+                                                         @RequestParam(required = false) Long days,
+                                                         @RequestParam List<Integer> lastDaysStatistic,
+                                                         @RequestParam Integer recovery,
+                                                         @RequestParam Integer died) {
+        Covid19StatisticRequest request = getRequest(date, days, lastDaysStatistic, recovery, died);
+        return ResponseEntity.ok(covid19Service.getStatistic(request));
     }
 
-    @GetMapping("/statistic/csv/{value}")
-    public void exportReport(@PathVariable String value,
-                             @RequestBody Covid19StatisticRequest request,
+    @GetMapping("/statistic/csv")
+    public void exportReport(@RequestParam(required = false) @DateTimeFormat(pattern = "dd.MM.yyyy") LocalDate date,
+                             @RequestParam(required = false) Long days,
+                             @RequestParam List<Integer> lastDaysStatistic,
+                             @RequestParam Integer recovery,
+                             @RequestParam Integer died,
                              HttpServletResponse response) {
-        LocalDate toDate = getDate(value);
+        Covid19StatisticRequest request = getRequest(date, days, lastDaysStatistic, recovery, died);
         response.setContentType(MediaType.APPLICATION_OCTET_STREAM_VALUE);
-        response.setHeader(HttpHeaders.CONTENT_DISPOSITION, String.format("attachment; filename=%s", getFileName(toDate)));
-        writeToResponse(response, covid19Service.getCSVStatistic(toDate, request));
+        response.setHeader(HttpHeaders.CONTENT_DISPOSITION, String.format("attachment; filename=%s", getFileName(request.getDate())));
+        writeToResponse(response, covid19Service.getCSVStatistic(request));
+    }
+
+    private Covid19StatisticRequest getRequest(LocalDate date, Long days, List<Integer> lastDaysStatistic, Integer recovery, Integer died) {
+        return Covid19StatisticRequest.builder()
+                .date(date != null ? date : LocalDate.now().plusDays(days != null ? days : 15L))
+                .lastDaysStatistic(lastDaysStatistic)
+                .recovery(recovery)
+                .died(died)
+                .build();
     }
 
     private void writeToResponse(HttpServletResponse response, byte[] csvStatistic) {
@@ -53,19 +69,6 @@ public class Covid19Controller {
 
     private String getFileName(LocalDate toDate) {
         return String.format("Covid19_statistic_%s.csv", toDate.format(DateTimeFormatter.ofPattern("dd_MM_yyyy")));
-    }
-
-    private LocalDate getDate(String value) {
-        return value.matches("\\d+") ? LocalDate.now().plusDays(Long.parseLong(value)) : getDateFromString(value);
-    }
-
-    private LocalDate getDateFromString(String date) {
-        try {
-            return LocalDate.parse(date, DateTimeFormatter.ofPattern("dd.MM.yyyy"));
-        } catch (Exception e) {
-            log.error(e.getLocalizedMessage(), e);
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, String.format("Не верный формат даты %s", date), e);
-        }
     }
 
 }
