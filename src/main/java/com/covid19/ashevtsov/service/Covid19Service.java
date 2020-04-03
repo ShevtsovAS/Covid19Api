@@ -7,4 +7,6 @@ import java.time.LocalDate;
 
 public interface Covid19Service {
     Covid19Statistic getStatistic(LocalDate toDate, Covid19StatisticRequest request);
+
+    byte[] getCSVStatistic(LocalDate toDate, Covid19StatisticRequest request);
 }

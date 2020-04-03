@@ -7,18 +7,24 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static com.covid19.ashevtsov.AppNumberUtils.*;
+import static java.util.stream.Collectors.toList;
 import static org.decimal4j.util.DoubleRounder.round;
 import static org.springframework.beans.factory.config.BeanDefinition.SCOPE_PROTOTYPE;
 
 @Service
 @Scope(SCOPE_PROTOTYPE)
 public class Covid19ServiceImpl implements Covid19Service {
+
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
     private double averageRecovery;
     private double averageMortality;
@@ -51,6 +57,31 @@ public class Covid19ServiceImpl implements Covid19Service {
         }
 
         return statistic;
+    }
+
+    @Override
+    public byte[] getCSVStatistic(LocalDate toDate, Covid19StatisticRequest request) {
+        Covid19Statistic statistic = getStatistic(toDate, request);
+        return convertToCSV(statistic);
+    }
+
+    private byte[] convertToCSV(Covid19Statistic statistic) {
+        String header = String.join(",", "Дата", "Заразилось", "Выздоровело", "Смертей");
+        List<String> data = Stream.concat(statistic.getCurrentStatistics().stream(), statistic.getProspectiveStatistics().stream())
+                .map(this::getCSVString)
+                .collect(toList());
+        List<String> csv = new ArrayList<>();
+        csv.add(header);
+        csv.addAll(data);
+        return String.join("\n", csv).getBytes(StandardCharsets.UTF_8);
+    }
+
+    private String getCSVString(DayStatistic dayStatistic) {
+        return String.format("%s,%d,%d,%d",
+                dayStatistic.getDate().format(DATE_FORMAT),
+                dayStatistic.getSickCount(),
+                dayStatistic.getRecovery(),
+                dayStatistic.getDied());
     }
 
     private void roundDoubleValues(Covid19Statistic statistic) {
