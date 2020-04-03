@@ -105,7 +105,7 @@ public class Covid19ServiceImpl implements Covid19Service {
     private List<DayStatistic> getCurrentStatistic(Covid19StatisticRequest request) {
         Iterator<Integer> iterator = request.getLastDaysStatistic().iterator();
         int sickCount = iterator.next();
-        LocalDate date = LocalDate.now().minusDays(request.getLastDaysStatistic().size() + 1);
+        LocalDate date = LocalDate.now().minusDays(request.getLastDaysStatistic().size() - 1);
         List<DayStatistic> result = new ArrayList<>();
         while (iterator.hasNext()) {
             date = date.plusDays(1);
